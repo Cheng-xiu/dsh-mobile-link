@@ -1,0 +1,7 @@
+# dsh-mobile-link bundle patch: mounts the auto-push plugin row.
+# The CLI lives in bin/cli.js and runs as its own process (it spawns
+# `dsh web --trusted-host <tunnel-host>`), so no command-line surface is
+# registered inside the dsh tree and the launcher argv stays untouched.
+- insert:
+    - id: mobile-link
+      name: dsh-mobile-link
