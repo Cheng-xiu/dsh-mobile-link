@@ -21,7 +21,7 @@ One-click phone access to your local DeepSeek Harness: a Cloudflare quick tunnel
 
 ## 安装
 
-前置要求：已安装 dsh CLI（[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)），Node.js >= 18.17。
+前置要求：已安装 dsh CLI（[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)）、Node.js >= 18.17，且 `pnpm` 在 PATH 中（`dsh plugin` 依赖它完成安装，找不到会报 `pnpm not found on PATH`）。
 
 本插件尚未发布到 npm，请从本地路径或 GitHub 安装：
 

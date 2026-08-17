@@ -41,10 +41,10 @@
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/schemastery": {
-      "optional": false
+      "optional": true
     },
     "commander": {
-      "optional": false
+      "optional": true
     }
   }
 }
