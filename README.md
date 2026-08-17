@@ -37,6 +37,8 @@ dsh plugin --profile web add C:\path\to\dsh-mobile-link
 
 > 若 pnpm 提示需要为构建脚本授权（pnpm 10+），按提示把该包加入 profile 的 `pnpm-workspace.yaml` 的 `allowBuilds` 后重试。本插件是纯 JavaScript，无原生构建。
 
+> `dsh plugin` 是 pnpm 转发器：`add` 后面的参数会原样传给 pnpm，因此 `dsh plugin --profile web --help` 显示的是 pnpm 的帮助；spec 支持 npm 包名、`github:owner/repo`、`git+https://...git`、`file:/path`、`link:/path` 等形式。
+
 ## 快速开始
 
 ### 1. 安装并重启 dsh web
@@ -161,11 +163,13 @@ node bin/cli.js doctor               # 环境诊断
 - **镜像前缀**：`CLOUDFLARED_BASE` 环境变量可覆盖下载源前缀（如内网镜像 `CLOUDFLARED_BASE=https://mirror.example.com/cloudflared`），缺省用官方 `releases/latest/download`。
 - **已装复用**：PATH 或常见安装位置（npm 全局、WinGet、scoop、`~/.cloudflared` 等）已有 cloudflared 时优先复用，不重复下载。
 - **隧道复用**：运行中的隧道记录在 `~/.dsh/mobile-link/tunnel-state.json`，下次同端口调用会复用仍在运行的隧道；日志按端口分文件（`cloudflared-<port>.log`）。
+- **孤儿隧道收养**：安装插件之前就已运行的 cloudflared 隧道（同端口），`status` 会识别为「已收养」并可被 `tunnel --stop` 停止；但无法读取其 URL（日志不是本插件写的），`send` 会另起新隧道。
 
 ## 与已运行实例的行为
 
 - 若目标端口已经有一个 DSH Web 在监听，`start` / `send` 会**复用或新建隧道后直接推送**，而不会重复启动 DSH。
 - 此时若该实例**不是**由 dsh-mobile-link 启动的，它会缺少 `--trusted-host` 放行，手机访问 /api 可能被信任栅栏拦截（403）。建议关闭现有实例后重新用 `start` 启动（会自动带 `--trusted-host`）。
+- 若已运行实例的信任主机与当前隧道主机名不一致（例如隧道重建导致 URL 变化），`start` / `send` 会打印具体的主机名对比与解决指引。更省心的做法是 `node bin/cli.js setup --auto` 开启树内自动模式：每次 dsh web 启动后会自动把当前隧道主机名加入信任栅栏并推送，之后只要重启 dsh 即可自愈。
 
 ## 安全与隐私说明
 
@@ -190,6 +194,9 @@ node bin/cli.js doctor               # 环境诊断
 
 **Q: 想换渠道？**
 重新运行 `node bin/cli.js setup` 即可，凭证覆盖保存。
+
+**Q: 我有多个 DSH 实例 / 想用别的端口？**
+一份 `~/.dsh/mobile-link/config.json` 同时只支持一个 `webPort`。多个实例请分别为各 profile 安装插件，并用 `node bin/cli.js setup --port <端口>` 修改 `webPort` 后重启对应实例。
 
 ## 开发说明
 
