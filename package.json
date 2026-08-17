@@ -1,6 +1,6 @@
 {
   "name": "dsh-mobile-link",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "One-click phone access to DeepSeek Harness via a Cloudflare quick tunnel, with the link pushed to your WeChat through your chosen channel (ServerChan / PushPlus / Bark / ntfy / custom webhook).",
   "type": "module",
   "main": "index.js",
@@ -23,6 +23,8 @@
     "node": ">=18.17"
   },
   "files": [
+    "install.ps1",
+    "install.cmd",
     "index.js",
     "lib",
     "bin",

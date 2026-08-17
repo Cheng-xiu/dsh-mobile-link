@@ -19,7 +19,23 @@ One-click phone access to your local DeepSeek Harness: a Cloudflare quick tunnel
 - **零键鼠接管、不依赖 PC 微信客户端**：纯 HTTP 推送，微信没开机也能收到。
 - **不依赖 Cloudflare 账号**：quick tunnel 匿名可用。
 
-## 安装
+## 一键安装（Windows，推荐）
+
+1. 打开仓库右上角 **Code → Download ZIP**，解压到任意目录。
+2. 双击根目录的 `install.cmd`。
+3. 向导会检查 Node.js、DSH、pnpm，安装 GitHub 插件，然后显示 Server酱获取步骤并询问 SendKey。
+4. 登录 <https://sct.ftqq.com>（微信扫码），在 **SendKey** 页面复制形如 `SCT...` 的密钥，粘贴给向导。
+5. 向导把密钥写入本机 `~/.dsh/mobile-link/config.json`，询问是否立即启动并推送手机链接。
+
+也可在 PowerShell 指定 profile、端口和自动推送：
+
+```powershell
+.\\install.ps1 -Profile web -Port 3080 -AutoSend
+```
+
+> SendKey 只保存在用户本机，安装脚本不会把它写入仓库或日志。Server酱免费额度有限，以其官网当前说明为准。安装后目标 DSH profile 必须重启一次，插件才会进入启动树。
+
+## 手动安装
 
 前置要求：已安装 dsh CLI（[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)）、Node.js >= 18.17，且 `pnpm` 在 PATH 中（`dsh plugin` 依赖它完成安装，找不到会报 `pnpm not found on PATH`）。
 
