@@ -4,6 +4,7 @@
 param(
   [string]$Profile = 'web',
   [int]$Port = 3080,
+  [string]$SendKey = '',
   [switch]$AutoSend,
   [switch]$SkipPluginInstall,
   [switch]$SkipSetup,
@@ -11,7 +12,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$Repo = 'github:Cheng-xiu/dsh-mobile-link'
+$Repo = 'github:Cheng-xiu/dsh-mobile-link#v0.1.3'
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DshHome = if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $HOME '.dsh' }
 $InstalledCli = Join-Path $DshHome "profiles\$Profile\node_modules\dsh-mobile-link\bin\cli.js"
@@ -34,8 +35,15 @@ Write-Host ''
 
 Require-Command 'node' '请先安装 Node.js 18.17+：https://nodejs.org/'
 Require-Command 'dsh' '请先安装 DeepSeek Harness，并确认 dsh 在 PATH 中。'
+$nodeVersion = (& node -p "process.versions.node").Trim()
+$nodeParts = $nodeVersion.Split('.')
+if (([int]$nodeParts[0] -lt 18) -or (([int]$nodeParts[0] -eq 18) -and ([int]$nodeParts[1] -lt 17))) {
+  throw "Node.js $nodeVersion 不受支持；需要 18.17 或更高版本。"
+}
 if (-not $SkipPluginInstall) {
   Require-Command 'pnpm' '请先安装 pnpm：corepack enable 或 npm install -g pnpm。'
+  $pnpmVersion = (& pnpm --version).Trim()
+  Write-Host "[i] Node.js $nodeVersion | pnpm $pnpmVersion" -ForegroundColor DarkGray
   Write-Host "[1/4] 安装 GitHub 插件到 profile '$Profile' ..." -ForegroundColor Yellow
   & dsh plugin --profile $Profile add $Repo
   if ($LASTEXITCODE -ne 0) { throw "dsh plugin add 失败（退出码 $LASTEXITCODE）。请检查 GitHub 网络和 pnpm。" }
@@ -48,7 +56,7 @@ if (-not $SkipSetup) {
   Write-Host '  1. 用微信扫码登录 https://sct.ftqq.com' -ForegroundColor Gray
   Write-Host '  2. 在网站的“SendKey”页面复制形如 SCT... 的密钥' -ForegroundColor Gray
   Write-Host '  3. 只在下面输入框粘贴；密钥仅保存到本机 ~/.dsh/mobile-link/config.json，不会写入仓库。' -ForegroundColor Gray
-  $key = Read-SecretValue '请输入 Server酱 SendKey（SCT...）'
+  $key = if ([string]::IsNullOrWhiteSpace($SendKey)) { Read-SecretValue '请输入 Server酱 SendKey（SCT...）' } else { $SendKey.Trim() }
   if ($key -notmatch '^SCT') { Write-Warning 'SendKey 通常以 SCT 开头，请确认输入正确。' }
   if (-not (Test-Path $InstalledCli)) { throw "插件安装后找不到 CLI：$InstalledCli。请确认 profile '$Profile' 安装成功。" }
   $args = @($InstalledCli, 'setup', '--channel', 'serverchan', '--key', $key, '--port', $Port)

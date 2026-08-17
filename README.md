@@ -35,6 +35,8 @@ One-click phone access to your local DeepSeek Harness: a Cloudflare quick tunnel
 
 > SendKey 只保存在用户本机，安装脚本不会把它写入仓库或日志。Server酱免费额度有限，以其官网当前说明为准。安装后目标 DSH profile 必须重启一次，插件才会进入启动树。
 
+> `commander` 由插件作为运行时依赖自行安装，避免全新 profile 或独立 `DSH_HOME` 中出现 `ERR_MODULE_NOT_FOUND`；`@deepseek-ai/schemastery` 仍为可选 peer，仅供树内配置 schema 使用。
+
 ## 手动安装
 
 前置要求：已安装 dsh CLI（[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)）、Node.js >= 18.17，且 `pnpm` 在 PATH 中（`dsh plugin` 依赖它完成安装，找不到会报 `pnpm not found on PATH`）。
