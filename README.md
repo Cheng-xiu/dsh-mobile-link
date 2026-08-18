@@ -103,7 +103,7 @@ node bin/cli.js setup --auto
 
 | 命令 | 说明 | 参数 |
 | --- | --- | --- |
-| `start` | 一键：隧道 → 启动 DSH Web（带 `--trusted-host`）→ 推送链接 | `--port <p>` `--profile <name>` `--test` `--dry-run` |
+| `start` | 一键：唯一隧道 → 修复/重启 DSH Web（`--trusted-host` 与隧道一致）→ 公网首页 + `/api` 双探针验证 → 推送链接 | `--port <p>` `--profile <name>` `--test` `--dry-run` `--no-push` |
 | `send` | 只推送（复用已有隧道，无则新建） | `--test` `--dry-run` `--port <p>` |
 | `setup` | 配置渠道与凭证（交互式，也可纯参数） | `--channel` `--key` `--token` `--device-key` `--topic` `--url` `--ntfy-server` `--ntfy-token` `--port` `--auto` `--no-auto` |
 | `tunnel` | 只管理隧道，打印手机 URL | `--port <p>` `--stop` |
@@ -180,14 +180,20 @@ node bin/cli.js doctor               # 环境诊断
 - **自动下载**：未在 PATH 或常见位置找到 cloudflared 时，按平台从 GitHub 官方 release 自动下载到缓存 `~/.dsh/mobile-link/bin/`（Windows 为 `cloudflared.exe`）。
 - **镜像前缀**：`CLOUDFLARED_BASE` 环境变量可覆盖下载源前缀（如内网镜像 `CLOUDFLARED_BASE=https://mirror.example.com/cloudflared`），缺省用官方 `releases/latest/download`。
 - **已装复用**：PATH 或常见安装位置（npm 全局、WinGet、scoop、`~/.cloudflared` 等）已有 cloudflared 时优先复用，不重复下载。
-- **隧道复用**：运行中的隧道记录在 `~/.dsh/mobile-link/tunnel-state.json`，下次同端口调用会复用仍在运行的隧道；日志按端口分文件（`cloudflared-<port>.log`）。
-- **孤儿隧道收养**：安装插件之前就已运行的 cloudflared 隧道（同端口），`status` 会识别为「已收养」并可被 `tunnel --stop` 停止；但无法读取其 URL（日志不是本插件写的），`send` 会另起新隧道。
+- **唯一隧道所有权**：同一 Web 端口只保留一条受管 quick tunnel。检测到旧版状态、外部/重复 cloudflared 或不健康 metrics 时会停止并替换，避免 DSH 信任主机与屏幕/微信中的 URL 分属两条隧道。
+- **严格状态绑定**：复用必须同时匹配 cloudflared PID、目标端口、状态版本、metrics 地址、活动 HA 连接和 metrics 中报告的 `userHostname`；创建过程还需看到本进程的 URL、metrics 与 `Registered tunnel connection`。
+- **并发锁**：CLI、安装器和树内自动模式同时触发时会串行管理隧道，不会各自创建不同 URL。日志按端口分文件（`cloudflared-<port>.log`）。
 
 ## 与已运行实例的行为
 
-- 若目标端口已经有一个 DSH Web 在监听，`start` / `send` 会**复用或新建隧道后直接推送**，而不会重复启动 DSH。
-- 此时若该实例**不是**由 dsh-mobile-link 启动的，它会缺少 `--trusted-host` 放行，手机访问 /api 可能被信任栅栏拦截（403）。建议关闭现有实例后重新用 `start` 启动（会自动带 `--trusted-host`）。
-- 若已运行实例的信任主机与当前隧道主机名不一致（例如隧道重建导致 URL 变化），`start` / `send` 会打印具体的主机名对比与解决指引。更省心的做法是 `node bin/cli.js setup --auto` 开启树内自动模式：每次 dsh web 启动后会自动把当前隧道主机名加入信任栅栏并推送，之后只要重启 dsh 即可自愈。
+- `start` 先建立**唯一**受管隧道（同端口已有的外部/重复 cloudflared 会被替换），然后检查端口上的监听者：
+  - 没有监听者 → 自动启动 `dsh web --trusted-host <隧道主机名>`；
+  - 是 DSH 且 `--trusted-host` 与隧道一致 → 直接复用，不重启；
+  - 是 DSH 但 `--trusted-host` 不匹配（手机 `/api` 403 的根源）→ 自动重启该 DSH 并带上正确的隧道主机名；
+  - 不是 DSH 的进程占用端口 → **不误杀**，直接失败并提示。
+- `start` 只有在公网首页 HTTP 200 且 `/api` 不被 403 拦截后才显示/推送链接；`send`、`tunnel`、`status`、`doctor` 同样会对 URL 做公网验证，未验证的 URL 不会显示为可分享链接。
+- `send` 检测到 trusted-host 不匹配时**拒绝推送**并提示运行 `start` 修复，避免再次把打不开的链接发到手机/微信。
+- 桌面启动器（`DeepSeek Harness 一键启动.cmd`）已改为委托已安装插件 CLI 的 `start --no-push` 管理 3080 隧道与 DSH 信任主机；只有在插件未安装时才回退到计划任务 legacy 隧道模式。OpenBiliClaw（8420）隧道始终由其自身的计划任务管理，不受主隧道清理逻辑影响。
 
 ## 安全与隐私说明
 
@@ -205,7 +211,7 @@ node bin/cli.js doctor               # 环境诊断
 如果已有旧 DSH 实例在运行，它会缺少本插件动态放行的隧道主机名。关闭旧实例后重新双击即可。
 
 **Q: 手机打开后界面异常 / 接口 403？**
-确认使用的是本插件推送的**最新**链接（隧道 URL 每次重启都变）；确认 DSH Web 是由 `start` 启动的（自带 `--trusted-host`）。
+先确认用的是本插件推送的**最新**链接（隧道 URL 每次重启都变）；然后运行 `node bin/cli.js start`——它会自动把 DSH 的 `--trusted-host` 重启成与当前隧道一致，并做公网首页 + `/api` 双探针验证，验证通过后才推送链接。403（trusted-host 不匹配）是 v0.1.4 之后可以自愈的问题。
 
 **Q: 微信收不到推送？**
 运行 `node bin/cli.js doctor` 检查渠道凭证与网络；注意 Server酱等渠道有每日免费额度上限。
