@@ -12,7 +12,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$Repo = 'github:Cheng-xiu/dsh-mobile-link#v0.1.4'
+$Repo = 'github:Cheng-xiu/dsh-mobile-link#v0.1.5'
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DshHome = if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $HOME '.dsh' }
 $InstalledCli = Join-Path $DshHome "profiles\$Profile\node_modules\dsh-mobile-link\bin\cli.js"

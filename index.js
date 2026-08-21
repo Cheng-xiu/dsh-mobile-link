@@ -9,7 +9,7 @@
 // the launcher command line.
 import z from '@deepseek-ai/schemastery';
 import { runStart } from './lib/core.js';
-import { loadConfig } from './lib/store.js';
+import { configExists, loadConfig } from './lib/store.js';
 
 export const name = 'mobile-link';
 
@@ -33,7 +33,10 @@ function schedule(ctx, delayMs, fn) {
 export function apply(ctx, config) {
   let storeConfig = null;
   try {
-    storeConfig = loadConfig();
+    // A missing config.json yields DEFAULTS (autoSend:false); that must not
+    // clobber an explicit cordis/plugin value, so only trust the store when
+    // the file actually exists.
+    storeConfig = configExists() ? loadConfig() : null;
   } catch (error) {
     console.warn('[mobile-link] 读取配置失败:', error.message);
   }
